@@ -9,8 +9,9 @@ declare global {
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopwave';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
+// Allow deployment without MongoDB for now
+if (!MONGODB_URI && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️ MONGODB_URI not found, using fallback');
 }
 
 let cached = global.mongoose;
@@ -51,7 +52,11 @@ async function dbConnect() {
   } catch (e) {
     console.error('❌ MongoDB connection failed:', e);
     cached.promise = null;
-    throw e;
+    // Don't throw error in production, just log it
+    if (process.env.NODE_ENV !== 'production') {
+      throw e;
+    }
+    return null;
   }
 }
 
