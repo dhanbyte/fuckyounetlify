@@ -69,31 +69,26 @@ export default function VendorDashboard() {
       // Add cache busting parameter
       const timestamp = Date.now()
       
-      // Get product count from same API as My Products page
-      const productsRes = await fetch(`/api/vendor/products?vendorId=${vendorId}&t=${timestamp}`)
-      const productsData = await productsRes.json()
-      const productCount = productsData.success ? productsData.products.length : 0
+      // Fetch vendor profile with real statistics
+      const profileRes = await fetch(`/api/vendor/profile?vendorId=${vendorId}&t=${timestamp}`)
+      const profileData = await profileRes.json()
       
-      // Fetch other stats - use the MongoDB _id from vendor profile
-      const statsRes = await fetch(`/api/vendor/stats?vendorId=${vendorId}&t=${timestamp}`)
-      let statsData = { stats: { totalOrders: 0, totalEarnings: 0, pendingOrders: 0 } }
-      
-      if (statsRes.ok) {
-        statsData = await statsRes.json()
-        console.log('📊 Stats response:', statsData)
+      if (profileData.success && profileData.vendor) {
+        const vendor = profileData.vendor
+        const finalStats = {
+          totalProducts: vendor.totalProducts || 0,
+          totalOrders: vendor.totalOrders || 0,
+          totalEarnings: vendor.totalEarnings || 0,
+          pendingOrders: vendor.pendingOrders || 0
+        }
+        
+        console.log('📊 Real vendor stats:', finalStats)
+        setStats(finalStats)
       } else {
-        console.error('❌ Stats API failed:', statsRes.status)
+        console.error('❌ Profile API failed:', profileData.error)
+        setStats({ totalProducts: 0, totalOrders: 0, totalEarnings: 0, pendingOrders: 0 })
       }
       
-      // Combine with actual product count
-      const finalStats = {
-        totalProducts: productCount,
-        totalOrders: statsData.stats?.totalOrders || 0,
-        totalEarnings: statsData.stats?.totalEarnings || 0,
-        pendingOrders: statsData.stats?.pendingOrders || 0
-      }
-      
-      setStats(finalStats)
       setLastFetch(timestamp)
       
       // Load secondary data
