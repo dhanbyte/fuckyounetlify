@@ -51,7 +51,10 @@ export default function AddProduct() {
         const sessionResponse = await fetch('/api/vendor/session')
         const sessionResult = await sessionResponse.json()
         
+        console.log('Session check result:', sessionResult)
+        
         if (!sessionResult.success) {
+          alert('Please login as vendor first')
           window.location.href = '/vendor/login'
           return
         }
@@ -60,11 +63,17 @@ export default function AddProduct() {
         const response = await fetch(`/api/vendor/profile?vendorId=${sessionResult.vendor._id}`)
         const result = await response.json()
         
+        console.log('Vendor profile result:', result)
+        
         if (result.success && result.vendor) {
           setVendorData(result.vendor)
+        } else {
+          // Use session data as fallback
+          setVendorData(sessionResult.vendor)
         }
       } catch (error) {
         console.error('Error fetching vendor data:', error)
+        alert('Error loading vendor data. Please try logging in again.')
         window.location.href = '/vendor/login'
       } finally {
         setVendorLoading(false)
@@ -158,7 +167,8 @@ export default function AddProduct() {
 
     try {
       if (!vendorData) {
-        throw new Error('Vendor data not loaded. Please refresh the page and try again.')
+        alert('Vendor data not loaded. Please refresh the page and try again.')
+        return
       }
 
       console.log('Using vendor data:', vendorData)
@@ -168,7 +178,8 @@ export default function AddProduct() {
         if (!product.name || !product.category || !product.subcategory ||
             !product.originalPrice || !product.discountPrice || !product.stock ||
             !product.length || !product.width || !product.height || !product.weight || product.images.length === 0) {
-          throw new Error(`Please fill all required fields for "${product.name || 'Product'}": name, category, subcategory, original price, discount price, stock, dimensions (L×W×H), weight, and at least one image`)
+          alert(`Please fill all required fields for "${product.name || 'Product'}": name, category, subcategory, original price, discount price, stock, dimensions (L×W×H), weight, and at least one image`)
+          return
         }
 
         console.log('Adding product:', product.name)
