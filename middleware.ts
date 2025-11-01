@@ -19,10 +19,21 @@ const publicRoutes = [
   "/site.webmanifest"
 ];
 
+const protectedRoutes = [
+  "/orders",
+  "/account",
+  "/wishlist",
+  "/cart",
+  "/checkout",
+  "/admin/(.*)",
+  "/vendor/(.*)"
+];
+
 const isPublicRoute = createRouteMatcher(publicRoutes);
+const isProtectedRoute = createRouteMatcher(protectedRoutes);
 
 export default clerkMiddleware((auth, req) => {
-  if (!isPublicRoute(req)) {
+  if (isProtectedRoute(req)) {
     auth().protect();
   }
 });

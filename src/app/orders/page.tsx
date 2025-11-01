@@ -5,22 +5,30 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useAuth } from '@/context/ClerkAuthContext'
+import { useUser } from '@clerk/nextjs'
 
 export default function OrdersPage(){
   const { user } = useAuth()
+  const { user: clerkUser, isLoaded } = useUser()
   const [orders, setOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.id) {
-      fetchOrders()
+    if (isLoaded) {
+      if (user?.id || clerkUser?.id) {
+        fetchOrders()
+      } else {
+        setIsLoading(false)
+      }
     }
-  }, [user])
+  }, [user, clerkUser, isLoaded])
 
   const fetchOrders = async () => {
     try {
-      // Use email to find orders since Clerk users place orders with email
-      const userId = user.email || user.id
+      // Use Clerk user ID directly - this is what's stored in orders
+      const userId = clerkUser?.id || user?.id
+      console.log('🔍 Fetching orders for userId:', userId)
+      
       const response = await fetch(`/api/user/orders?userId=${userId}`)
       const data = await response.json()
       
@@ -37,16 +45,16 @@ export default function OrdersPage(){
     }
   }
 
-  if (isLoading) {
+  if (!isLoaded || isLoading) {
     return <div className="flex justify-center py-10"><LoadingSpinner /></div>;
   }
   
-  if (!user) {
+  if (!user && !clerkUser) {
     return (
        <div className="card p-8 text-center">
           <h2 className="text-lg font-medium text-gray-700">Please Login</h2>
           <p className="text-sm text-gray-500 mt-1">Login to view your order history.</p>
-          <Link href="/account" className="mt-4 inline-block rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90">Go to Login</Link>
+          <Link href="/sign-in" className="mt-4 inline-block rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90">Go to Login</Link>
       </div>
     )
   }

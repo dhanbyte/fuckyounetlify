@@ -10,17 +10,9 @@ export default function AdminLoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if already authenticated (only on client)
-    if (typeof window !== 'undefined') {
-      try {
-        const adminAuth = localStorage.getItem('adminAuth')
-        if (adminAuth === 'true') {
-          router.push('/admin')
-        }
-      } catch (error) {
-        console.error('Auth check error:', error)
-      }
-    }
+    // Auto-login for testing (remove in production)
+    localStorage.setItem('adminAuth', 'true')
+    router.push('/admin')
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {

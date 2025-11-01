@@ -87,11 +87,11 @@ export async function GET(request: NextRequest) {
             customerDetails: customer ? {
               name: customer.fullName || 'N/A',
               email: customer.email || order.customerId,
-              phone: customer.phone || 'N/A'
+              phone: customer.phone || customer.phoneNumber || 'Not provided'
             } : {
               name: 'N/A',
               email: order.customerId,
-              phone: 'N/A'
+              phone: 'Not provided'
             },
             products: order.items || [],
             total: order.vendorTotal,
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
             customerDetails: {
               name: 'N/A',
               email: order.customerId,
-              phone: 'N/A'
+              phone: 'Not provided'
             },
             products: order.items || [],
             total: order.vendorTotal,

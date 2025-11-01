@@ -5,6 +5,7 @@ import VendorOrder from '@/models/VendorOrder'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 10
+export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +21,15 @@ export async function GET(request: NextRequest) {
     
     console.log('📊 Fetching stats for vendorId:', vendorId)
     await dbConnect()
+    
+    // Debug: Check what orders exist in the database
+    const allOrders = await VendorOrder.find({}).limit(5).lean()
+    console.log('📊 Sample orders in database:', allOrders.map(o => ({ 
+      orderId: o.orderId, 
+      vendorId: o.vendorId, 
+      status: o.status,
+      total: o.vendorTotal 
+    })))
 
     // Get vendor details to find the correct vendorId used in products and orders
     const mongoose = require('mongoose')
@@ -38,49 +48,22 @@ export async function GET(request: NextRequest) {
       console.log('Error fetching vendor details:', e.message)
     }
     
-    // Count products for this vendor (try multiple vendorId formats)
-    console.log('Counting products for actualVendorId:', actualVendorId)
+    // Count products for this vendor using direct vendorId
+    const productStats = await VendorProduct.countDocuments({ vendorId }).maxTimeMS(3000)
+    console.log('Product count for vendorId:', vendorId, '=', productStats)
     
-    let productStats = await VendorProduct.countDocuments({ vendorId: actualVendorId }).maxTimeMS(3000)
-    console.log('Product count with actualVendorId:', productStats)
+    // Direct query with the vendorId (MongoDB _id)
+    const totalOrders = await VendorOrder.countDocuments({ vendorId }).maxTimeMS(3000)
+    const pendingOrders = await VendorOrder.countDocuments({ vendorId, status: 'pending' }).maxTimeMS(3000)
     
-    // If no products found, try with original vendorId or email
-    if (productStats === 0) {
-      productStats = await VendorProduct.countDocuments({ vendorId }).maxTimeMS(3000)
-      console.log('Product count with original vendorId:', productStats)
-      
-      if (productStats === 0 && vendor && vendor.email) {
-        productStats = await VendorProduct.countDocuments({ vendorId: vendor.email }).maxTimeMS(3000)
-        console.log('Product count with email vendorId:', productStats)
-      }
-    }
+    console.log(`📊 Direct query for vendorId ${vendorId}: ${totalOrders} orders, ${pendingOrders} pending`)
     
-    // Use the same actualVendorId for orders
+    const earningsResult = await VendorOrder.aggregate([
+      { $match: { vendorId, status: { $ne: 'cancelled' } } },
+      { $group: { _id: null, totalEarnings: { $sum: '$netAmount' } } }
+    ]).maxTimeMS(3000)
     
-    // Try all possible vendorId formats and combine results
-    const vendorIdFormats = [actualVendorId, vendorId]
-    if (vendor && vendor.email) vendorIdFormats.push(vendor.email)
-    
-    let totalOrders = 0
-    let pendingOrders = 0
-    let totalEarnings = 0
-    
-    for (const vid of vendorIdFormats) {
-      const orders = await VendorOrder.countDocuments({ vendorId: vid }).maxTimeMS(3000)
-      const pending = await VendorOrder.countDocuments({ vendorId: vid, status: 'pending' }).maxTimeMS(3000)
-      
-      if (orders > 0) {
-        totalOrders += orders
-        pendingOrders += pending
-        
-        const earningsResult = await VendorOrder.aggregate([
-          { $match: { vendorId: vid, status: { $ne: 'pending' } } },
-          { $group: { _id: null, totalEarnings: { $sum: '$netAmount' } } }
-        ]).maxTimeMS(3000)
-        
-        totalEarnings += earningsResult[0]?.totalEarnings || 0
-      }
-    }
+    const totalEarnings = earningsResult[0]?.totalEarnings || 0
     
     console.log('📊 Order stats found:', { totalOrders, pendingOrders, totalEarnings, actualVendorId })
     

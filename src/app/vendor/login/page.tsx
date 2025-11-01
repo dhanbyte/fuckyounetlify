@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -9,20 +9,26 @@ import Link from 'next/link'
 export default function VendorLogin() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  
-  // Clear any existing session on component mount
-  useState(() => {
-    localStorage.clear()
-  })
+  const [checking, setChecking] = useState(true)
   const { toast } = useToast()
   const router = useRouter()
+  
+  // Check if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+      if (isLoggedIn === 'true') {
+        router.push('/vendor/dashboard')
+      } else {
+        setChecking(false)
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
-    // Clear localStorage before login attempt
-    localStorage.clear()
 
     try {
       const response = await fetch('/api/vendor/login', {
@@ -35,6 +41,11 @@ export default function VendorLogin() {
       
       if (data.success) {
         if (data.vendor.status === 'approved') {
+          // Store vendor data in localStorage
+          localStorage.setItem('vendorEmail', data.vendor.email)
+          localStorage.setItem('vendorData', JSON.stringify(data.vendor))
+          localStorage.setItem('vendorLoggedIn', 'true')
+          
           // Create server session
           const sessionResponse = await fetch('/api/vendor/session', {
             method: 'POST',
@@ -42,12 +53,8 @@ export default function VendorLogin() {
             body: JSON.stringify({ email: data.vendor.email })
           })
           
-          if (sessionResponse.ok) {
-            toast({ title: "Success", description: `Welcome ${data.vendor.businessName}!` })
-            router.push('/vendor/dashboard')
-          } else {
-            toast({ title: "Error", description: "Session creation failed" })
-          }
+          toast({ title: "Success", description: `Welcome ${data.vendor.businessName}!` })
+          router.push('/vendor/dashboard')
         } else {
           toast({ title: "Pending", description: "Your account is pending admin approval" })
         }
@@ -56,11 +63,21 @@ export default function VendorLogin() {
       }
     } catch (error) {
       console.error('Login error:', error)
-      localStorage.clear()
       toast({ title: "Error", description: "Login failed" })
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Checking login status...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

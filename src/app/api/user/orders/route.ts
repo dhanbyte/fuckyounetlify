@@ -16,8 +16,19 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    console.log('🔍 Fetching orders for userId:', userId)
+    
     // Find orders for this user
     const orders = await AdminOrder.find({ userId }).sort({ createdAt: -1 })
+    console.log('📦 Found orders:', orders.length)
+    
+    // Debug: Check what orders exist in database
+    const allOrders = await AdminOrder.find({}).limit(3).lean()
+    console.log('📦 Sample orders in database:', allOrders.map(o => ({ 
+      orderId: o.orderId, 
+      userId: o.userId, 
+      total: o.total 
+    })))
 
     // Transform orders to match frontend format
     const transformedOrders = orders.map(order => ({

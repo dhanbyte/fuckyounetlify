@@ -11,8 +11,22 @@ export default function MyOrders() {
 
   useEffect(() => {
     const loadVendorData = async () => {
-      const vendorEmail = localStorage.getItem('vendorEmail')
+      // Check multiple sources for vendor data
+      let vendorEmail = localStorage.getItem('vendorEmail')
+      let vendorData = localStorage.getItem('vendorData')
       
+      // If we have stored vendor data, use it directly
+      if (vendorData) {
+        try {
+          const vendor = JSON.parse(vendorData)
+          setVendorId(vendor._id || vendor.id)
+          return
+        } catch (e) {
+          console.error('Error parsing vendor data:', e)
+        }
+      }
+      
+      // If we have email, fetch vendor profile
       if (vendorEmail) {
         try {
           const response = await fetch(`/api/vendor/profile?email=${vendorEmail}`)
@@ -20,6 +34,8 @@ export default function MyOrders() {
           
           if (result.success && result.vendor) {
             setVendorId(result.vendor._id)
+            // Store vendor data for future use
+            localStorage.setItem('vendorData', JSON.stringify(result.vendor))
             return
           }
         } catch (error) {
@@ -27,7 +43,10 @@ export default function MyOrders() {
         }
       }
       
-      window.location.href = '/vendor/login'
+      // Check if we're already on login page to prevent redirect loop
+      if (!window.location.pathname.includes('/vendor/login')) {
+        window.location.href = '/vendor/login'
+      }
     }
     
     loadVendorData()

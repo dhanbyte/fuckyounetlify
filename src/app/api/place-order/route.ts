@@ -34,6 +34,9 @@ export async function POST(request: Request) {
       ]
     }).lean();
     
+    console.log('📦 Creating order with userId:', userId)
+    console.log('📦 Customer found:', customer ? customer.email : 'Not found')
+    
     // Generate order ID
     const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
     });
 
     await order.save();
+    console.log('✅ Order saved with userId:', order.userId)
 
     // Create vendor orders for vendor products
     const vendorOrders = [];

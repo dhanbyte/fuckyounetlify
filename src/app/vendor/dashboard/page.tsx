@@ -11,11 +11,27 @@ export default function VendorDashboard() {
   const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastFetch, setLastFetch] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     const loadVendorData = async () => {
       try {
-        // Check server session
+        // First check localStorage for quick auth
+        const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+        const vendorData = localStorage.getItem('vendorData')
+        
+        if (isLoggedIn === 'true' && vendorData) {
+          const vendor = JSON.parse(vendorData)
+          setVendorInfo({ 
+            id: vendor._id, 
+            email: vendor.email,
+            businessName: vendor.businessName 
+          })
+          fetchVendorData(vendor._id)
+          return
+        }
+        
+        // Fallback to server session check
         const response = await fetch('/api/vendor/session')
         const result = await response.json()
         
@@ -30,26 +46,42 @@ export default function VendorDashboard() {
           fetchVendorData(result.vendor._id)
         } else {
           console.log('❌ No valid session, redirecting to login')
+          localStorage.clear()
           window.location.href = '/vendor/login'
         }
       } catch (error) {
         console.error('❌ Session check failed:', error)
+        localStorage.clear()
         window.location.href = '/vendor/login'
       }
     }
     
     loadVendorData()
-  }, [])
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      if (vendorInfo?.id) {
+        fetchVendorData(vendorInfo.id)
+      }
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [vendorInfo?.id])
 
-  const fetchVendorData = async (vendorId) => {
+  const fetchVendorData = async (vendorId, isRefresh = false) => {
+    if (isRefresh) setRefreshing(true)
+    
     try {
+      // Add cache busting parameter
+      const timestamp = Date.now()
+      
       // Get product count from same API as My Products page
-      const productsRes = await fetch(`/api/vendor/products?vendorId=${vendorId}`)
+      const productsRes = await fetch(`/api/vendor/products?vendorId=${vendorId}&t=${timestamp}`)
       const productsData = await productsRes.json()
       const productCount = productsData.success ? productsData.products.length : 0
       
       // Fetch other stats - use the MongoDB _id from vendor profile
-      const statsRes = await fetch(`/api/vendor/stats?vendorId=${vendorId}`)
+      const statsRes = await fetch(`/api/vendor/stats?vendorId=${vendorId}&t=${timestamp}`)
       let statsData = { stats: { totalOrders: 0, totalEarnings: 0, pendingOrders: 0 } }
       
       if (statsRes.ok) {
@@ -68,6 +100,7 @@ export default function VendorDashboard() {
       }
       
       setStats(finalStats)
+      setLastFetch(timestamp)
       
       // Load secondary data
       Promise.allSettled([
@@ -87,6 +120,13 @@ export default function VendorDashboard() {
       setStats({ totalProducts: 0, totalOrders: 0, totalEarnings: 0, pendingOrders: 0 })
     } finally {
       setLoading(false)
+      if (isRefresh) setRefreshing(false)
+    }
+  }
+  
+  const refreshData = () => {
+    if (vendorInfo?.id && !refreshing) {
+      fetchVendorData(vendorInfo.id, true)
     }
   }
 
@@ -113,10 +153,19 @@ export default function VendorDashboard() {
       console.error('Logout error:', error)
     }
     
+    // Clear all localStorage data
+    localStorage.removeItem('vendorEmail')
+    localStorage.removeItem('vendorData')
+    localStorage.removeItem('vendorLoggedIn')
+    localStorage.clear()
+    
+    // Clear component state
     setVendorInfo(null)
     setStats(null)
     setNotifications([])
     setRecentOrders([])
+    
+    // Redirect to login
     window.location.href = '/vendor/login'
   }
 
@@ -135,6 +184,13 @@ export default function VendorDashboard() {
               <span className="text-sm text-gray-600">
                 Welcome, {vendorInfo?.businessName || vendorInfo?.email}
               </span>
+              <button 
+                onClick={refreshData} 
+                disabled={refreshing}
+                className="border px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
               <button onClick={logout} className="border px-3 py-1 rounded text-sm hover:bg-gray-50">
                 Logout
               </button>

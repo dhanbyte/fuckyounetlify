@@ -57,7 +57,7 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
     clearNotifications()
   }
 
-  const saveUserToDatabase = (userData: CustomUser) => {
+  const saveUserToDatabase = (userData: any) => {
     // Fire and forget - completely async, no waiting
     setTimeout(() => {
       fetch('/api/register-user', {
@@ -67,7 +67,7 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
           userId: userData.id,
           email: userData.email,
           fullName: userData.fullName || 'User',
-          phone: ''
+          phone: userData.phone || ''
         })
       }).catch(() => {})
     }, 0)
@@ -111,7 +111,11 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
             }
             
             // Background tasks - don't wait for these
-            saveUserToDatabase(customUser)
+            const userDataWithPhone = {
+              ...customUser,
+              phone: clerkUser.primaryPhoneNumber?.phoneNumber || ''
+            }
+            saveUserToDatabase(userDataWithPhone)
             
             // Handle referral tracking in background
             if (typeof window !== 'undefined') {
