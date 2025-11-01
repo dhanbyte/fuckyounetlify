@@ -97,6 +97,7 @@ export async function GET(request: Request) {
                     ...product,
                     id: product._id.toString(),
                     _id: product._id.toString(),
+                    slug: product.slug || product.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || product._id.toString(),
                     shortDescription: product.description?.substring(0, 100) + '...' || '',
                     extraImages: product.extraImages || [],
                     features: product.features || [],
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
                     inStock: product.stock > 0,
                     quantity: product.stock,
                     isVendorProduct: true,
-                    slug: product.name.toLowerCase().replace(/\s+/g, '-'),
+                    slug: product.slug || product.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || product._id.toString(),
                     // Match the exact price format used by other products
                     price_original: product.originalPrice || product.price,
                     price_discounted: product.discountPrice || product.price,

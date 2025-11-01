@@ -2,6 +2,7 @@
 import { useMemo, useState, Suspense, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Head from 'next/head'
+import Link from 'next/link'
 import Gallery from '@/components/Gallery'
 import PriceTag from '@/components/PriceTag'
 import RatingStars from '@/components/RatingStars'
@@ -58,7 +59,49 @@ function ProductDetailContent() {
   useEffect(() => {
     setP(undefined); 
     if (products.length > 0) {
-      const foundProduct = products.find(prod => prod.slug === slug);
+      console.log('Looking for product with slug:', slug);
+      console.log('Available products:', products.length);
+      
+      // Try multiple ways to find the product
+      let foundProduct = products.find(prod => prod.slug === slug);
+      console.log('Found by slug:', !!foundProduct);
+      
+      if (!foundProduct) {
+        foundProduct = products.find(prod => prod.id === slug);
+        console.log('Found by id:', !!foundProduct);
+      }
+      
+      if (!foundProduct) {
+        foundProduct = products.find(prod => prod._id === slug);
+        console.log('Found by _id:', !!foundProduct);
+      }
+      
+      // If still not found, try partial slug match
+      if (!foundProduct) {
+        foundProduct = products.find(prod => 
+          prod.slug && prod.slug.includes(slug as string)
+        );
+        console.log('Found by partial slug:', !!foundProduct);
+      }
+      
+      // If still not found, try name-based slug generation
+      if (!foundProduct) {
+        foundProduct = products.find(prod => {
+          const generatedSlug = prod.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          return generatedSlug === slug;
+        });
+        console.log('Found by generated slug:', !!foundProduct);
+      }
+      
+      if (foundProduct) {
+        console.log('Found product:', foundProduct.name);
+      } else {
+        console.log('Product not found. First 5 products:');
+        products.slice(0, 5).forEach(p => {
+          console.log(`- ID: ${p.id}, Slug: ${p.slug}, Name: ${p.name}`);
+        });
+      }
+      
       setP(foundProduct || null);
     }
   }, [slug, products]);
@@ -72,7 +115,31 @@ function ProductDetailContent() {
   }
 
   if (p === null) {
-    return <div>Product not found</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-10">
+        <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+        <p className="text-gray-600 mb-4">Looking for product with slug: <code className="bg-gray-100 px-2 py-1 rounded">{slug}</code></p>
+        <p className="text-sm text-gray-500 mb-4">Available products: {products.length}</p>
+        {process.env.NODE_ENV === 'development' && (
+          <details className="mt-4">
+            <summary className="cursor-pointer text-blue-600">Debug Info (Dev Only)</summary>
+            <div className="mt-2 p-4 bg-gray-100 rounded text-xs">
+              <p>Products with slugs:</p>
+              <ul className="list-disc list-inside">
+                {products.slice(0, 10).map((prod, i) => (
+                  <li key={i}>
+                    ID: {prod.id} | Slug: {prod.slug} | Name: {prod.name?.substring(0, 30)}...
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )}
+        <Link href="/" className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Go Home
+        </Link>
+      </div>
+    )
   }
 
   const price = p.price.discounted ?? p.price.original
@@ -100,7 +167,7 @@ function ProductDetailContent() {
       price, 
       name: p.name, 
       image: p.image,
-      weight: p.weight,
+      weight: p.weight || 100,
       category: p.category,
       ...(p.isCustomizable && customName.trim() && { customName: customName.trim() })
     };
@@ -133,7 +200,7 @@ function ProductDetailContent() {
       price, 
       name: p.name, 
       image: p.image,
-      weight: p.weight,
+      weight: p.weight || 100,
       category: p.category,
       ...(p.isCustomizable && customName.trim() && { customName: customName.trim() })
     };

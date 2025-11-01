@@ -41,8 +41,14 @@ export const useProductStore = create<ProductState>()((set, get) => ({
         const apiProducts = await response.json();
         const products = Array.isArray(apiProducts) ? apiProducts : [];
         
+        // Ensure all products have proper slug
+        const processedProducts = products.map(product => ({
+          ...product,
+          slug: product.slug || product.id || product._id || product.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'product'
+        }));
+        
         // Add customizable products
-        const allProducts = [...products, ...CUSTOMIZABLE_PRODUCTS];
+        const allProducts = [...processedProducts, ...CUSTOMIZABLE_PRODUCTS];
         
         set({ products: allProducts, isLoading: false, initialized: true });
         console.log(`Loaded ${allProducts.length} products from API`);
@@ -58,7 +64,11 @@ export const useProductStore = create<ProductState>()((set, get) => ({
       ...HOME_PRODUCTS,
       ...NEWARRIVALS_PRODUCTS,
       ...CUSTOMIZABLE_PRODUCTS
-    ];
+    ].map(product => ({
+      ...product,
+      slug: product.slug || product.id || product.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'product'
+    }));
+    
     set({ products: fallbackProducts, isLoading: false, initialized: true });
     console.log(`Loaded ${fallbackProducts.length} fallback products`);
   },

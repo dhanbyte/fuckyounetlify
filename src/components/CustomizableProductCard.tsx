@@ -21,6 +21,17 @@ export default function CustomizableProductCard({ product }: CustomizableProduct
   const { requireAuth, user } = useRequireAuth()
   const price = product.price.discounted ?? product.price.original
   
+  // Generate proper slug for the product
+  const getProductSlug = () => {
+    if (product.slug) return product.slug;
+    if (product.id) return product.id;
+    if (product._id) return product._id;
+    // Fallback: generate slug from name
+    return product.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'product';
+  };
+  
+  const productSlug = getProductSlug();
+  
   const handleAddToCart = () => {
     if (!requireAuth('add items to cart')) {
       return
@@ -41,7 +52,7 @@ export default function CustomizableProductCard({ product }: CustomizableProduct
       className="bg-white rounded-lg border border-blue-200 p-2 flex flex-col group hover:shadow-md transition-shadow"
     >
       <div className="relative aspect-square mb-2">
-        <Link href={`/product/${product.slug || product.id}`} className="block h-full">
+        <Link href={`/product/${productSlug}`} className="block h-full">
           <div className="relative w-full h-full overflow-hidden rounded-md">
             {product.image ? (
               <UniversalImage
@@ -70,7 +81,7 @@ export default function CustomizableProductCard({ product }: CustomizableProduct
         </div>
       </div>
       <div className="flex-grow flex flex-col">
-        <Link href={`/product/${product.slug || product.id}`} className="flex-grow">
+        <Link href={`/product/${productSlug}`} className="flex-grow">
           <div className="line-clamp-2 text-[11px] sm:text-xs font-medium leading-tight mb-1 h-6">{product.name}</div>
           <div className="mb-1">
             <RatingStars value={product.ratings?.average || 0} />

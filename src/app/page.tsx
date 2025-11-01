@@ -39,9 +39,17 @@ export default function Home() {
   // Ensure products are loaded
   useEffect(() => {
     if (!products.length && !isLoading) {
+      console.log('Initializing products...');
       init();
     }
   }, [products.length, isLoading, init]);
+  
+  useEffect(() => {
+    console.log('Homepage products loaded:', products.length);
+    if (products.length > 0) {
+      console.log('First product:', products[0]);
+    }
+  }, [products]);
   const { toast } = useToast();
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_TO_SHOW);
   const [selectedCategory, setSelectedCategory] = useState('All');
