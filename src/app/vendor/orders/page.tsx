@@ -11,36 +11,31 @@ export default function MyOrders() {
 
   useEffect(() => {
     const loadVendorData = async () => {
-      // Check multiple sources for vendor data
-      let vendorEmail = localStorage.getItem('vendorEmail')
-      let vendorData = localStorage.getItem('vendorData')
+      // Check localStorage first
+      const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+      const vendorDataStr = localStorage.getItem('vendorData')
       
-      // If we have stored vendor data, use it directly
-      if (vendorData) {
+      if (isLoggedIn === 'true' && vendorDataStr) {
         try {
-          const vendor = JSON.parse(vendorData)
-          setVendorId(vendor._id || vendor.id)
+          const vendorData = JSON.parse(vendorDataStr)
+          setVendorId(vendorData._id || vendorData.id)
           return
         } catch (e) {
           console.error('Error parsing vendor data:', e)
         }
       }
       
-      // If we have email, fetch vendor profile
-      if (vendorEmail) {
-        try {
-          const response = await fetch(`/api/vendor/profile?email=${vendorEmail}`)
-          const result = await response.json()
-          
-          if (result.success && result.vendor) {
-            setVendorId(result.vendor._id)
-            // Store vendor data for future use
-            localStorage.setItem('vendorData', JSON.stringify(result.vendor))
-            return
-          }
-        } catch (error) {
-          console.error('Error fetching vendor profile:', error)
+      // Fallback to server session
+      try {
+        const response = await fetch('/api/vendor/session')
+        const result = await response.json()
+        
+        if (result.success && result.vendor) {
+          setVendorId(result.vendor._id)
+          return
         }
+      } catch (error) {
+        console.error('Error fetching vendor session:', error)
       }
       
       // Check if we're already on login page to prevent redirect loop

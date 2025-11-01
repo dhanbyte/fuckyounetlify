@@ -88,6 +88,8 @@ export async function GET(request: Request) {
                     }).lean() : []
                 ]);
                 
+                console.log(`Found ${regularProducts.length} regular products and ${vendorProducts.length} approved vendor products`);
+                
                 await client.close();
                 
                 // Transform regular products
@@ -156,8 +158,14 @@ export async function GET(request: Request) {
                 const finalProducts = limit && !isNaN(Number(limit)) ? 
                     allProducts.slice(0, Number(limit)) : allProducts;
 
-                console.log(`Found ${finalProducts.length} products (${transformedRegularProducts.length} DB + ${transformedVendorProducts.length} vendor + ${finalProducts.length - transformedRegularProducts.length - transformedVendorProducts.length} JSON)`);
-                return NextResponse.json(finalProducts);
+                console.log(`Returning ${finalProducts.length} products (${transformedRegularProducts.length} DB + ${transformedVendorProducts.length} vendor + ${finalProducts.length - transformedRegularProducts.length - transformedVendorProducts.length} JSON)`);
+                
+                // Add cache control headers to prevent caching
+                const response = NextResponse.json(finalProducts);
+                response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+                response.headers.set('Pragma', 'no-cache');
+                response.headers.set('Expires', '0');
+                return response;
                 
             } catch (dbError) {
                 console.error('Database error:', dbError);

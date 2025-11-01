@@ -58,14 +58,8 @@ export default function VendorDashboard() {
     
     loadVendorData()
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      if (vendorInfo?.id) {
-        fetchVendorData(vendorInfo.id)
-      }
-    }, 30000)
-    
-    return () => clearInterval(interval)
+    // Remove auto-refresh to prevent navigation issues
+    // Manual refresh button is available instead
   }, [vendorInfo?.id])
 
   const fetchVendorData = async (vendorId, isRefresh = false) => {

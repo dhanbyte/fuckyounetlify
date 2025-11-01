@@ -47,7 +47,18 @@ export default function AddProduct() {
   useEffect(() => {
     const fetchVendorData = async () => {
       try {
-        // First check session
+        // Check localStorage first
+        const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+        const vendorDataStr = localStorage.getItem('vendorData')
+        
+        if (isLoggedIn === 'true' && vendorDataStr) {
+          const localVendorData = JSON.parse(vendorDataStr)
+          setVendorData(localVendorData)
+          setVendorLoading(false)
+          return
+        }
+        
+        // Fallback to server session check
         const sessionResponse = await fetch('/api/vendor/session')
         const sessionResult = await sessionResponse.json()
         

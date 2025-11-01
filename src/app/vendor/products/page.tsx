@@ -9,6 +9,21 @@ export default function MyProducts() {
 
   useEffect(() => {
     const loadVendorData = async () => {
+      // Check localStorage first
+      const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+      const vendorDataStr = localStorage.getItem('vendorData')
+      
+      if (isLoggedIn === 'true' && vendorDataStr) {
+        try {
+          const vendorData = JSON.parse(vendorDataStr)
+          setVendorId(vendorData._id || vendorData.id)
+          return
+        } catch (e) {
+          console.error('Error parsing vendor data:', e)
+        }
+      }
+      
+      // Fallback to server session
       try {
         const response = await fetch('/api/vendor/session')
         const result = await response.json()
