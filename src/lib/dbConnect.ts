@@ -7,12 +7,7 @@ declare global {
   };
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopwave';
-
-// Allow deployment without MongoDB for now
-if (!MONGODB_URI && process.env.NODE_ENV === 'production') {
-  console.warn('⚠️ MONGODB_URI not found, using fallback');
-}
+const MONGODB_URI = process.env.MONGODB_URI;
 
 let cached = global.mongoose;
 
@@ -21,6 +16,12 @@ if (!cached) {
 }
 
 async function dbConnect() {
+  // Return null if no MongoDB URI is provided
+  if (!MONGODB_URI) {
+    console.warn('⚠️ MONGODB_URI not found, skipping database connection');
+    return null;
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
@@ -28,20 +29,15 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      maxPoolSize: 20,
-      minPoolSize: 5,
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 15000,
-      connectTimeoutMS: 10000,
-      maxIdleTimeMS: 30000,
-      family: 4,
-      retryWrites: true,
-      w: 'majority'
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then(() => {
       console.log('✅ MongoDB connected successfully');
       return mongoose;
+    }).catch((e) => {
+      console.error('❌ MongoDB connection failed:', e);
+      cached.promise = null;
+      return null;
     });
   }
 
@@ -52,10 +48,6 @@ async function dbConnect() {
   } catch (e) {
     console.error('❌ MongoDB connection failed:', e);
     cached.promise = null;
-    // Don't throw error in production, just log it
-    if (process.env.NODE_ENV !== 'production') {
-      throw e;
-    }
     return null;
   }
 }
