@@ -65,7 +65,7 @@ export default function ProductCard({ p, product, suggest }: { p?: Product; prod
       className="bg-white rounded-lg border border-gray-200 p-2 md:p-3 flex flex-col group hover:shadow-md transition-all duration-200"
     >
       <div className="relative w-full aspect-square mb-2 md:mb-3 overflow-hidden rounded-md bg-gray-50">
-        <Link href={`/product/${productData.slug}`} className="absolute inset-0">
+        <Link href={`/product/${productData.slug || productData.id}`} className="absolute inset-0">
           {productData.image ? (
             <UniversalImage
               src={productData.image}
@@ -100,7 +100,7 @@ export default function ProductCard({ p, product, suggest }: { p?: Product; prod
       </div>
       
       <div className="flex-1 flex flex-col">
-        <Link href={`/product/${productData.slug}`} className="flex-1">
+        <Link href={`/product/${productData.slug || productData.id}`} className="flex-1">
           <h3 className="line-clamp-2 text-xs md:text-sm font-medium text-gray-900 mb-1 md:mb-2 leading-tight">
             {productData.name}
           </h3>

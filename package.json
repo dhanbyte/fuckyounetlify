@@ -10,7 +10,7 @@
     "vercel-build": "npm install --legacy-peer-deps && next build"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.1",
+    "@clerk/nextjs": "^6.34.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -37,7 +37,7 @@
     "lucide-react": "^0.475.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
-    "next": "^14.2.33",
+    "next": "^16.0.1",
     "node-fetch": "^2.7.0",
     "razorpay": "^2.9.6",
     "react": "^18.3.1",
