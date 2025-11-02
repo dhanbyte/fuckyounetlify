@@ -15,7 +15,27 @@ export default function VendorProfile() {
 
   const fetchVendorProfile = async () => {
     try {
-      // Check session first
+      // Check localStorage first
+      const isLoggedIn = localStorage.getItem('vendorLoggedIn')
+      const vendorDataStr = localStorage.getItem('vendorData')
+      
+      if (isLoggedIn === 'true' && vendorDataStr) {
+        try {
+          const localVendorData = JSON.parse(vendorDataStr)
+          // Fetch fresh data using vendorId
+          const response = await fetch(`/api/vendor/profile?vendorId=${localVendorData._id}`)
+          const data = await response.json()
+          
+          if (data.success) {
+            setVendorData(data.vendor)
+            return
+          }
+        } catch (e) {
+          console.error('Error using localStorage data:', e)
+        }
+      }
+      
+      // Fallback to session check
       const sessionResponse = await fetch('/api/vendor/session')
       const sessionData = await sessionResponse.json()
       
@@ -24,9 +44,14 @@ export default function VendorProfile() {
         return
       }
       
-      // Fetch full profile data
-      const response = await fetch(`/api/vendor/profile?email=${sessionData.vendor.email}`)
-      const data = await response.json()
+      // Try with vendorId first, then email
+      let response = await fetch(`/api/vendor/profile?vendorId=${sessionData.vendor._id}`)
+      let data = await response.json()
+      
+      if (!data.success && sessionData.vendor.email) {
+        response = await fetch(`/api/vendor/profile?email=${sessionData.vendor.email}`)
+        data = await response.json()
+      }
       
       if (data.success) {
         setVendorData(data.vendor)

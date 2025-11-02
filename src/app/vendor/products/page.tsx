@@ -158,7 +158,7 @@ export default function MyProducts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
-            <div key={product._id} className="bg-white rounded-lg shadow overflow-hidden">
+            <div key={product._id} className="bg-white rounded-lg shadow overflow-hidden h-[420px] flex flex-col">
               {product.images && product.images[0] && (
                 <img
                   src={product.images[0]}
@@ -166,9 +166,11 @@ export default function MyProducts() {
                   className="w-full h-48 object-cover"
                 />
               )}
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
-                <p className="text-gray-600 text-sm mb-2">{product.description}</p>
+              <div className="p-4 flex flex-col flex-1">
+                <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h3>
+                <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                  {product.description?.length > 60 ? `${product.description.substring(0, 60)}...` : product.description}
+                </p>
                 <div className="flex justify-between items-center mb-3">
                   <div>
                     <span className="text-xl font-bold text-green-600">₹{product.discountPrice || product.price}</span>
@@ -185,7 +187,7 @@ export default function MyProducts() {
                     'bg-red-100 text-red-800'
                   }`}>{product.status}</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <button 
                     onClick={() => editProduct(product)}
                     className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"

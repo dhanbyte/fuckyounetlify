@@ -12,24 +12,27 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [productsRes, customersRes, ordersRes] = await Promise.all([
+      const [productsRes, vendorProductsRes, customersRes, ordersRes] = await Promise.all([
         fetch('/api/admin/products'),
+        fetch('/api/admin/vendor-products'),
         fetch('/api/admin/customers'),
         fetch('/api/admin/orders')
       ])
       
       const productsData = await productsRes.json()
+      const vendorProductsData = await vendorProductsRes.json()
       const customersData = await customersRes.json()
       const ordersData = await ordersRes.json()
       
       const products = productsData.products || []
+      const vendorProducts = vendorProductsData.products || []
       const customers = customersData.customers || []
       const orders = ordersData.orders || []
       
       const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
       
       setStats({
-        totalProducts: products.length,
+        totalProducts: products.length + vendorProducts.length,
         totalOrders: orders.length,
         totalCustomers: customers.length,
         totalRevenue
@@ -74,7 +77,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                <p className="text-2xl font-bold">{stats?.totalProducts || 0}</p>
               </div>
               <div className="text-3xl">📦</div>
             </div>

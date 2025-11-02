@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import { useProductStore } from '@/lib/productStore';
 import { NEWARRIVALS_PRODUCTS } from '@/lib/data/newarrivals';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import type { Product } from '@/lib/types';
 
 // Smart categorization function
 const getProductsForSubcategory = (subcategoryName: string, allProducts: Product[]) => {
@@ -78,13 +79,19 @@ export default function NewArrivalsPage() {
   }, []);
 
   const allNewArrivals = useMemo(() => {
-    const apiNewArrivals = products.filter(p => p.category === 'New Arrivals' && p.quantity > 0);
+    // Get all products that should be in New Arrivals
+    const apiNewArrivals = products.filter(p => 
+      (p.category === 'New Arrivals' || 
+       p.category === 'Tech' || 
+       p.category === 'Home' ||
+       p.category === 'Customizable') && 
+      p.quantity > 0
+    );
     const jsonNewArrivals = NEWARRIVALS_PRODUCTS.filter(p => p.quantity > 0);
-    const customizableProducts = products.filter(p => p.category === 'Customizable' && p.quantity > 0);
     
     // Remove duplicates by creating a Map with id as key
     const uniqueProductsMap = new Map();
-    [...apiNewArrivals, ...jsonNewArrivals, ...customizableProducts].forEach(p => {
+    [...apiNewArrivals, ...jsonNewArrivals].forEach(p => {
       if (p && p.id && !uniqueProductsMap.has(p.id)) {
         uniqueProductsMap.set(p.id, p);
       }

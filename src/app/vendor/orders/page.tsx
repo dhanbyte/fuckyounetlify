@@ -398,7 +398,7 @@ Status: ${order.status}
                       </div>
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4" />
-                        <span>{order.customerDetails?.phone || 'N/A'}</span>
+                        <span>{order.customerDetails?.phone || 'Phone not provided'}</span>
                       </div>
                     </div>
                     {order.shippingAddress && (

@@ -185,6 +185,43 @@ export default function VendorDashboard() {
               >
                 {refreshing ? 'Refreshing...' : 'Refresh'}
               </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/debug/orders')
+                    const data = await res.json()
+                    alert(`Orders in DB:\nVendor Orders: ${data.vendorOrdersCount}\nAdmin Orders: ${data.adminOrdersCount}`)
+                  } catch (error) {
+                    alert('Failed to check orders')
+                  }
+                }}
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              >
+                Check Orders
+              </button>
+              <button 
+                onClick={async () => {
+                  if (vendorInfo?.id) {
+                    try {
+                      const res = await fetch('/api/vendor/test-orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ vendorId: vendorInfo.id })
+                      })
+                      const data = await res.json()
+                      if (data.success) {
+                        alert('Test orders created!')
+                        refreshData()
+                      }
+                    } catch (error) {
+                      alert('Failed to create test orders')
+                    }
+                  }
+                }}
+                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+              >
+                Add Test Orders
+              </button>
               <button onClick={logout} className="border px-3 py-1 rounded text-sm hover:bg-gray-50">
                 Logout
               </button>

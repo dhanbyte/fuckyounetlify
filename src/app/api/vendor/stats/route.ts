@@ -52,16 +52,35 @@ export async function GET(request: NextRequest) {
     const productStats = await VendorProduct.countDocuments({ vendorId }).maxTimeMS(3000)
     console.log('Product count for vendorId:', vendorId, '=', productStats)
     
-    // Direct query with the vendorId (MongoDB _id)
-    const totalOrders = await VendorOrder.countDocuments({ vendorId }).maxTimeMS(3000)
-    const pendingOrders = await VendorOrder.countDocuments({ vendorId, status: 'pending' }).maxTimeMS(3000)
-    
-    console.log(`📊 Direct query for vendorId ${vendorId}: ${totalOrders} orders, ${pendingOrders} pending`)
-    
-    const earningsResult = await VendorOrder.aggregate([
+    // Try multiple vendorId formats for orders
+    let totalOrders = await VendorOrder.countDocuments({ vendorId }).maxTimeMS(3000)
+    let pendingOrders = await VendorOrder.countDocuments({ vendorId, status: 'pending' }).maxTimeMS(3000)
+    let earningsResult = await VendorOrder.aggregate([
       { $match: { vendorId, status: { $ne: 'cancelled' } } },
       { $group: { _id: null, totalEarnings: { $sum: '$netAmount' } } }
     ]).maxTimeMS(3000)
+    
+    // If no orders found with vendorId, try with actualVendorId
+    if (totalOrders === 0 && actualVendorId !== vendorId) {
+      totalOrders = await VendorOrder.countDocuments({ vendorId: actualVendorId }).maxTimeMS(3000)
+      pendingOrders = await VendorOrder.countDocuments({ vendorId: actualVendorId, status: 'pending' }).maxTimeMS(3000)
+      earningsResult = await VendorOrder.aggregate([
+        { $match: { vendorId: actualVendorId, status: { $ne: 'cancelled' } } },
+        { $group: { _id: null, totalEarnings: { $sum: '$netAmount' } } }
+      ]).maxTimeMS(3000)
+    }
+    
+    // If still no orders and vendor has email, try with email
+    if (totalOrders === 0 && vendor?.email) {
+      totalOrders = await VendorOrder.countDocuments({ vendorId: vendor.email }).maxTimeMS(3000)
+      pendingOrders = await VendorOrder.countDocuments({ vendorId: vendor.email, status: 'pending' }).maxTimeMS(3000)
+      earningsResult = await VendorOrder.aggregate([
+        { $match: { vendorId: vendor.email, status: { $ne: 'cancelled' } } },
+        { $group: { _id: null, totalEarnings: { $sum: '$netAmount' } } }
+      ]).maxTimeMS(3000)
+    }
+    
+    console.log(`📊 Final query results: ${totalOrders} orders, ${pendingOrders} pending`)
     
     const totalEarnings = earningsResult[0]?.totalEarnings || 0
     

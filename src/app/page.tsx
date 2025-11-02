@@ -282,7 +282,7 @@ export default function Home() {
                     <h3 className="text-xs md:text-md font-bold text-white text-center">Fashion</h3>
                 </div>
             </Link>
-            <Link href="/new-arrivals" className="relative block h-20 md:h-48 overflow-hidden rounded-lg md:rounded-xl group">
+            <Link href="/search?category=New%20Arrivals" className="relative block h-20 md:h-48 overflow-hidden rounded-lg md:rounded-xl group">
                 <Image src="https://ik.imagekit.io/b5qewhvhb/e%20commers/tach/electronics%20itams%20part%202/02_6d35b019-089f-4949-9571-7a7bd595fccd.webp" alt="New Arrivals" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="new arrivals shopping" />
                 <div className="absolute inset-0 bg-black/40"></div>
                 <div className="absolute inset-0 flex items-center justify-center p-1 md:p-2">

@@ -1518,13 +1518,6 @@ function SearchContent() {
                     relatedProducts = products.filter(p => {
                       if (!p || !p.quantity || p.quantity <= 0) return false;
                       
-                      // Handle LED Lights subcategory specifically
-                      if (opts.subcategory === 'LED Lights') {
-                        return p.name && (p.name.toLowerCase().includes('led') || 
-                               p.name.toLowerCase().includes('light') ||
-                               p.name.toLowerCase().includes('lamp'));
-                      }
-                      
                       return (p.category === 'New Arrivals' || 
                        p.subcategory === 'Diwali Special' ||
                        p.subcategory === 'Best Selling' ||

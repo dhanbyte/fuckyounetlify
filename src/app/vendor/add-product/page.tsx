@@ -33,7 +33,9 @@ export default function AddProduct() {
     width: '',
     height: '',
     weight: '',
-    images: []
+    images: [],
+    imageUrls: [],
+    uploadingImages: false
   }])
   const [loading, setLoading] = useState(false)
   const [activeProduct, setActiveProduct] = useState(0)
@@ -139,7 +141,9 @@ export default function AddProduct() {
       width: '',
       height: '',
       weight: '',
-      images: []
+      images: [],
+      imageUrls: [],
+      uploadingImages: false
     }])
     setActiveProduct(products.length)
   }
@@ -158,18 +162,117 @@ export default function AddProduct() {
     setProducts(newProducts)
   }
 
-  const handleImageUpload = (index, files) => {
+  const handleImageUpload = async (index, files) => {
     const newProducts = [...products]
     newProducts[index].images = Array.from(files)
+    newProducts[index].uploadingImages = true
     setProducts(newProducts)
+    
+    // Upload images immediately in background
+    const imageUrls = []
+    try {
+      for (const image of Array.from(files)) {
+        const formDataImg = new FormData()
+        formDataImg.append('file', image)
+        formDataImg.append('fileName', `product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+        formDataImg.append('folder', '/vendor-products')
+
+        const uploadResponse = await fetch('/api/imagekit/upload', {
+          method: 'POST',
+          body: formDataImg
+        })
+
+        const uploadData = await uploadResponse.json()
+        if (uploadData.success) {
+          imageUrls.push(uploadData.url)
+        }
+      }
+      
+      // Update with uploaded URLs
+      const updatedProducts = [...products]
+      updatedProducts[index].imageUrls = imageUrls
+      updatedProducts[index].uploadingImages = false
+      setProducts(updatedProducts)
+    } catch (error) {
+      console.error('Image upload failed:', error)
+      const updatedProducts = [...products]
+      updatedProducts[index].uploadingImages = false
+      setProducts(updatedProducts)
+    }
   }
 
-  const replaceImage = (productIndex, imageIndex, file) => {
+  const uploadImagesInBackground = async (productId, images) => {
+    try {
+      const imageUrls = []
+      for (const image of images) {
+        const formDataImg = new FormData()
+        formDataImg.append('file', image)
+        formDataImg.append('fileName', `product-${productId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+        formDataImg.append('folder', '/vendor-products')
+
+        const uploadResponse = await fetch('/api/imagekit/upload', {
+          method: 'POST',
+          body: formDataImg
+        })
+
+        const uploadData = await uploadResponse.json()
+        if (uploadData.success) {
+          imageUrls.push(uploadData.url)
+        }
+      }
+      
+      // Update product with real image URLs
+      if (imageUrls.length > 0) {
+        await fetch('/api/vendor/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            productId, 
+            images: imageUrls,
+            updateImagesOnly: true 
+          })
+        })
+      }
+    } catch (error) {
+      console.error('Background image upload failed:', error)
+    }
+  }
+
+  const replaceImage = async (productIndex, imageIndex, file) => {
     const newProducts = [...products]
     const newImages = [...newProducts[productIndex].images]
     newImages[imageIndex] = file
     newProducts[productIndex].images = newImages
+    newProducts[productIndex].uploadingImages = true
     setProducts(newProducts)
+    
+    // Upload replacement image immediately
+    try {
+      const formDataImg = new FormData()
+      formDataImg.append('file', file)
+      formDataImg.append('fileName', `product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+      formDataImg.append('folder', '/vendor-products')
+
+      const uploadResponse = await fetch('/api/imagekit/upload', {
+        method: 'POST',
+        body: formDataImg
+      })
+
+      const uploadData = await uploadResponse.json()
+      if (uploadData.success) {
+        const updatedProducts = [...products]
+        const newImageUrls = [...updatedProducts[productIndex].imageUrls]
+        newImageUrls[imageIndex] = uploadData.url
+        updatedProducts[productIndex].imageUrls = newImageUrls
+        updatedProducts[productIndex].uploadingImages = false
+        setProducts(updatedProducts)
+      }
+    } catch (error) {
+      console.error('Image replacement failed:', error)
+      const updatedProducts = [...products]
+      updatedProducts[productIndex].uploadingImages = false
+      setProducts(updatedProducts)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -194,25 +297,10 @@ export default function AddProduct() {
         }
 
         console.log('Adding product:', product.name)
-        const imageUrls = []
-        for (const image of product.images) {
-          const formDataImg = new FormData()
-          formDataImg.append('file', image)
-          formDataImg.append('fileName', `product-${Date.now()}`)
-          formDataImg.append('folder', '/vendor-products')
-
-          const uploadResponse = await fetch('/api/imagekit/upload', {
-            method: 'POST',
-            body: formDataImg
-          })
-
-          const uploadData = await uploadResponse.json()
-          if (uploadData.success) {
-            imageUrls.push(uploadData.url)
-          } else {
-            throw new Error(`Failed to upload image for ${product.name}: ${uploadData.message}`)
-          }
-        }
+        
+        // Use placeholder URLs if images are still uploading
+        const imageUrls = product.imageUrls.length > 0 ? product.imageUrls : 
+          product.images.map((_, index) => `placeholder-${Date.now()}-${index}`)
 
         const productData = {
           vendorId: vendorData._id,
@@ -234,7 +322,8 @@ export default function AddProduct() {
           length: parseFloat(product.length),
           width: parseFloat(product.width),
           height: parseFloat(product.height),
-          weight: parseInt(product.weight)
+          weight: parseInt(product.weight),
+          pendingImages: product.images.length > 0 && product.imageUrls.length === 0
         }
 
         console.log('Sending product data:', productData)
@@ -251,6 +340,11 @@ export default function AddProduct() {
         if (!result.success) {
           throw new Error(`Failed to add product "${product.name}": ${result.message}`)
         }
+        
+        // Upload images in background if not already uploaded
+        if (product.images.length > 0 && product.imageUrls.length === 0) {
+          uploadImagesInBackground(result.productId, product.images)
+        }
       }
 
       // Force refresh the product store to show new products immediately
@@ -265,7 +359,7 @@ export default function AddProduct() {
       }
       setProducts([{
         name: '', category: '', subcategory: '', tertiaryCategory: '', originalPrice: '', discountPrice: '',
-        description: '', stock: '', length: '', width: '', height: '', weight: '', images: []
+        description: '', stock: '', length: '', width: '', height: '', weight: '', images: [], imageUrls: [], uploadingImages: false
       }])
       setActiveProduct(0)
     } catch (error) {
@@ -498,30 +592,57 @@ export default function AddProduct() {
                   <p className="text-xs text-gray-500 mt-2">Upload up to 5 images (JPG, PNG). Click on any image to replace it.</p>
                 </div>
                 {currentProduct.images.length > 0 && (
-                  <div className="mt-4 grid grid-cols-4 gap-2">
-                    {Array.from(currentProduct.images).map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={URL.createObjectURL(image)}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-20 object-cover rounded border cursor-pointer"
-                          onClick={() => document.getElementById(`replace-${activeProduct}-${index}`).click()}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                          <span className="text-white text-xs font-medium">Change</span>
+                  <div className="mt-4">
+                    <div className="mb-2 flex items-center gap-2 text-sm text-green-600">
+                      <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                      Images will upload after product submission
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from(currentProduct.images).map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded border"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById(`replace-${activeProduct}-${index}`).click()}
+                              className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                            >
+                              Change
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newProducts = [...products]
+                                const newImages = newProducts[activeProduct].images.filter((_, i) => i !== index)
+                                const newImageUrls = newProducts[activeProduct].imageUrls.filter((_, i) => i !== index)
+                                newProducts[activeProduct].images = newImages
+                                newProducts[activeProduct].imageUrls = newImageUrls
+                                setProducts(newProducts)
+                              }}
+                              className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          <div className={`absolute -bottom-2 -right-2 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${
+                            currentProduct.imageUrls[index] ? 'bg-green-600' : 'bg-orange-600'
+                          }`}>
+                            {currentProduct.imageUrls[index] ? '✓' : '⏳'}
+                          </div>
+                          <input
+                            type="file"
+                            id={`replace-${activeProduct}-${index}`}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => e.target.files[0] && replaceImage(activeProduct, index, e.target.files[0])}
+                          />
                         </div>
-                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {index + 1}
-                        </div>
-                        <input
-                          type="file"
-                          id={`replace-${activeProduct}-${index}`}
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => e.target.files[0] && replaceImage(activeProduct, index, e.target.files[0])}
-                        />
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -534,7 +655,8 @@ export default function AddProduct() {
                 } text-white`}
               >
                 <Save className="h-5 w-5" />
-                {loading ? (isEditing ? 'Updating...' : 'Adding Products...') : (isEditing ? 'Update Product' : `Add ${products.length} Product(s)`)}
+                {loading ? (isEditing ? 'Updating...' : 'Adding Products...') : 
+                 (isEditing ? 'Update Product' : `Add ${products.length} Product(s)`)}
               </button>
             </form>
           </div>

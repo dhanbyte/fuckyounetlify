@@ -106,7 +106,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      product
+      product,
+      productId: product._id
     })
   } catch (error) {
     console.error('Error creating product:', error)

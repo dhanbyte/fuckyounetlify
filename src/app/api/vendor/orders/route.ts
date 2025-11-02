@@ -85,13 +85,21 @@ export async function GET(request: NextRequest) {
             orderId: order.orderId,
             customerId: order.customerId,
             customerDetails: customer ? {
-              name: customer.fullName || 'N/A',
+              name: customer.fullName || customer.name || 'Customer',
               email: customer.email || order.customerId,
-              phone: customer.phone || customer.phoneNumber || 'Not provided'
+              phone: customer.phone || customer.phoneNumber || customer.mobile || 'Phone not provided',
+              address: customer.address || 'Address not provided',
+              city: customer.city || 'City not provided',
+              state: customer.state || 'State not provided',
+              pincode: customer.pincode || customer.zipCode || 'Pincode not provided'
             } : {
-              name: 'N/A',
-              email: order.customerId,
-              phone: 'Not provided'
+              name: order.customerDetails?.name || 'Customer',
+              email: order.customerDetails?.email || order.customerId,
+              phone: order.customerDetails?.phone || 'Phone not provided',
+              address: 'Address not provided',
+              city: 'City not provided', 
+              state: 'State not provided',
+              pincode: 'Pincode not provided'
             },
             products: order.items || [],
             total: order.vendorTotal,
@@ -110,9 +118,13 @@ export async function GET(request: NextRequest) {
             orderId: order.orderId,
             customerId: order.customerId,
             customerDetails: {
-              name: 'N/A',
-              email: order.customerId,
-              phone: 'Not provided'
+              name: order.customerDetails?.name || 'Customer',
+              email: order.customerDetails?.email || order.customerId,
+              phone: order.customerDetails?.phone || 'Phone not provided',
+              address: 'Address not provided',
+              city: 'City not provided',
+              state: 'State not provided', 
+              pincode: 'Pincode not provided'
             },
             products: order.items || [],
             total: order.vendorTotal,
