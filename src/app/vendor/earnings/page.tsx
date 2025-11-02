@@ -18,12 +18,32 @@ export default function Earnings() {
 
   const fetchEarnings = async () => {
     try {
-      const vendorId = localStorage.getItem('vendorId')
+      // Get vendor ID from localStorage
+      const vendorDataStr = localStorage.getItem('vendorData')
+      let vendorId = null
+      
+      if (vendorDataStr) {
+        try {
+          const vendorData = JSON.parse(vendorDataStr)
+          vendorId = vendorData._id || vendorData.id
+        } catch (e) {
+          console.error('Error parsing vendor data:', e)
+        }
+      }
+      
+      if (!vendorId) {
+        console.error('No vendor ID found')
+        window.location.href = '/vendor/login'
+        return
+      }
+      
       const response = await fetch(`/api/vendor/earnings?vendorId=${vendorId}`)
       const data = await response.json()
       
       if (data.success) {
         setEarnings(data.earnings)
+      } else {
+        console.error('Earnings fetch error:', data.message)
       }
     } catch (error) {
       console.error('Error fetching earnings:', error)

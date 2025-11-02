@@ -10,10 +10,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const vendorId = searchParams.get('vendorId')
 
-    if (!vendorId) {
+    if (!vendorId || vendorId === 'null' || vendorId === 'undefined') {
       return NextResponse.json({ 
         success: false, 
-        message: 'Vendor ID required' 
+        message: 'Valid Vendor ID required' 
+      }, { status: 400 })
+    }
+
+    // Validate ObjectId format
+    const mongoose = require('mongoose')
+    if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Invalid Vendor ID format' 
       }, { status: 400 })
     }
 
