@@ -22,11 +22,7 @@ export default function VendorProfile() {
       if (isLoggedIn === 'true' && vendorDataStr) {
         try {
           const localVendorData = JSON.parse(vendorDataStr)
-<<<<<<< HEAD
-          // Fetch fresh data using vendorId
-=======
           // Fetch full profile using vendor ID
->>>>>>> 04196ac9d7486307db1a6e1e796efd9849061eca
           const response = await fetch(`/api/vendor/profile?vendorId=${localVendorData._id}`)
           const data = await response.json()
           
