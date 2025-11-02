@@ -1,8 +1,8 @@
 name = "shopwave"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-01-02"
 
 [build]
-command = "npm run build"
+command = "npm install && npm run build"
 
 [build.environment]
-NODE_VERSION = "18"
+NODE_VERSION = "20"
