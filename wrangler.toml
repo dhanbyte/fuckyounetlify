@@ -1,0 +1,3 @@
+name = "shopwave"
+compatibility_date = "2025-01-02"
+main = "_worker.js"
