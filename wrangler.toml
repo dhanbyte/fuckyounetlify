@@ -1,3 +1,8 @@
 name = "shopwave"
-compatibility_date = "2025-01-02"
-pages_build_output_dir = ".next"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+
+[build.environment]
+NODE_VERSION = "18"
